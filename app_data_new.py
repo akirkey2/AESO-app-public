@@ -12,9 +12,10 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from datetime import datetime
+import glob
+import zipfile
 # import seaborn as sns
 # import scipy as sp
-# import glob
 # import sys
 # from matplotlib import cm
 # import pathlib
@@ -33,10 +34,31 @@ mpl.rcParams['lines.markersize'] = 5
 
 #%% Dataframe setup
 # file_path = 'C:\\Users\\Aaron Kirkey\\Documents\\GitHub\\AESO-data\\CSD Generation (Hourly) - 2024-01.csv'
-file_name = 'CSD Generation (Hourly) - 2024-01 to 2024-06.csv'
-df = pd.read_csv(file_name, usecols=['Date (MST)', 'Asset Name', 'Volume',
-       'Fuel Type', 'Sub Fuel Type'])
+files = glob.glob('CSD*.zip')
 
+temp_dfs = []
+
+for file in files:
+    with zipfile.ZipFile(file, 'r') as zipf:
+        for f in zipf.namelist():
+            # If it's a CSV file, you can directly load it into a DataFrame
+            if f.endswith('.csv'):
+                with zipf.open(f) as file_in_zip:
+                    # Read the CSV directly into a pandas DataFrame
+                    temp = pd.read_csv(file_in_zip, usecols=['Date (MST)', 'Asset Name', 'Volume',
+                          'Fuel Type', 'Sub Fuel Type'])
+                temp_dfs.append(temp)
+raw_data = pd.concat(temp_dfs, ignore_index = True)
+#print(raw_data.tail)
+
+df = raw_data.copy()
+
+raw_data = []
+temp = []
+
+#%%
+#test = df.copy()
+#test = test.groupby()
 
 #%% Reducing the df to the date(s) selected by the user in the dash
 date = '2024-01-06'
@@ -155,18 +177,17 @@ def price_ei_vol_day(date='2024-01-06'):
     df_hourly_vol = df_hourly_vol.reset_index()
     
     #making total volume column
-    df_hourly_vol['Total Load'] = df_hourly_vol[['OTHER', 'WIND', 'GAS', 'HYDRO', 'SOLAR',
-           'ENERGY STORAGE', 'COAL', 'DUAL FUEL']].sum(axis=1)
+    fuel_types = [i for i in dft['Fuel Type'].unique()]
+    df_hourly_vol['Total Load'] = df_hourly_vol[fuel_types].sum(axis=1)
     #making hourly total ghg column
-    df_hourly_vol['Total_ghg'] = df_hourly_vol[['OTHER_ghg','WIND_ghg','GAS_ghg','HYDRO_ghg',
-                                                'SOLAR_ghg','ENERGY STORAGE_ghg','COAL_ghg',
-                                                'DUAL FUEL_ghg']].sum(axis=1)
+    ghg_types  = [x for x in df_hourly_vol.columns if 'ghg' in x]
+    df_hourly_vol['Total_ghg'] = df_hourly_vol[ghg_types].sum(axis=1)
     
     #Calculating Emission Intensity (ie gCO2e/kWh)
     df_hourly_vol['EI'] = (df_hourly_vol['Total_ghg'] / df_hourly_vol['Total Load']) * 1000
     #Making columns for renewable volume and FF volume
-    df_hourly_vol['Renewable Gen'] = df_hourly_vol[['WIND','SOLAR','HYDRO']].sum(axis=1)
-    df_hourly_vol['Fossil Fuel Gen'] = df_hourly_vol[['OTHER','GAS','COAL','DUAL FUEL']].sum(axis=1)
+    df_hourly_vol['Renewable Gen'] = df_hourly_vol.filter(items=['WIND','SOLAR','HYDRO']).sum(axis=1)
+    df_hourly_vol['Fossil Fuel Gen'] = df_hourly_vol.filter(items=['OTHER','GAS','COAL','DUAL FUEL']).sum(axis=1)
     df_hourly_vol['Net Load'] = df_hourly_vol['Total Load'] - (df_hourly_vol['Renewable Gen'])
     
     
@@ -254,17 +275,17 @@ def price_ei_vol_week(start_date='2024-01-02',end_date=start_date):
     df_hourly_vol = df_hourly_vol.reset_index()
     
     #making total volume column
-    df_hourly_vol['Total Load'] = df_hourly_vol[['OTHER', 'WIND', 'GAS', 'HYDRO', 'SOLAR','ENERGY STORAGE', 'COAL', 'DUAL FUEL']].sum(axis=1)
+    fuel_types = [i for i in dft['Fuel Type'].unique()]
+    df_hourly_vol['Total Load'] = df_hourly_vol[fuel_types].sum(axis=1)
     #making hourly total ghg column
-    df_hourly_vol['Total_ghg'] = df_hourly_vol[['OTHER_ghg','WIND_ghg','GAS_ghg','HYDRO_ghg',
-                                                'SOLAR_ghg','ENERGY STORAGE_ghg','COAL_ghg',
-                                                'DUAL FUEL_ghg']].sum(axis=1)
+    ghg_types  = [x for x in df_hourly_vol.columns if 'ghg' in x]
+    df_hourly_vol['Total_ghg'] = df_hourly_vol[ghg_types].sum(axis=1)
     
     #Calculating Emission Intensity (ie gCO2e/kWh)
     df_hourly_vol['EI'] = (df_hourly_vol['Total_ghg'] / df_hourly_vol['Total Load']) * 1000
     #Making columns for renewable volume and FF volume
-    df_hourly_vol['Renewable Gen'] = df_hourly_vol[['WIND','SOLAR','HYDRO']].sum(axis=1)
-    df_hourly_vol['Fossil Fuel Gen'] = df_hourly_vol[['OTHER','GAS','COAL','DUAL FUEL']].sum(axis=1)
+    df_hourly_vol['Renewable Gen'] = df_hourly_vol.filter(items=['WIND','SOLAR','HYDRO']).sum(axis=1)
+    df_hourly_vol['Fossil Fuel Gen'] = df_hourly_vol.filter(items=['OTHER','GAS','COAL','DUAL FUEL']).sum(axis=1)
     df_hourly_vol['Net Load'] = df_hourly_vol['Total Load'] - (df_hourly_vol['Renewable Gen'])
     
     diff = datetime.now() - start_time
