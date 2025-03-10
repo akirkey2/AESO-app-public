@@ -24,7 +24,7 @@ import plotly.express as px
 from dash import Dash, html, dash_table, dcc, callback, Input, Output
 import dash
 import dash_bootstrap_components as dbc
-import app_data_new
+import app_data_new_2
 import datetime as dt
 from datetime import date
 from datetime import datetime
@@ -51,6 +51,7 @@ color_map = {
     'ENERGY STORAGE':'#C24141', #Red
 }
 
+
 # Set this template as the default
 pio.templates.default = "custom_template"
 
@@ -59,14 +60,14 @@ app = Dash(external_stylesheets=[dbc.themes.SANDSTONE])
 app.title = 'AESO Energy Dash'
 app.layout = html.Div(style={'backgroundColor':'#818894'},
                       children=[
-    html.Div([html.H1(children='AESO Energy Dash', style={'textAlign': 'center', 'fontSize': 48}),
+    html.Div([html.H1(children='AESO Energy Dash', style={'textAlign': 'center', 'fontSize': 48,'color':'white'}),
               html.Br(),
               html.Div(children="""*Disclaimer: This web-dash and contents are in no way 
              affiliated with the AESO and serves only as a personal project to 
              improve my data science and data viz skillset with respect to grid
              data. For questions, comments or improvement ideas, please contact
              me at: akirkey2@gmail.com with the subject line 'AESO dash project'.
-             Thank you for your interest!""")]),
+             Thank you for your interest!""", style={'color':'white'})]),
     html.Br(),
 
     html.Div([
@@ -77,7 +78,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                  dbc.Container(
                         dbc.Row([
                             dbc.Col(
-                                dbc.Label('Choose date:', style={'color':'white','fontSize': 17}),
+                                dbc.Label('Choose date:', style={'color':'white','fontSize': 17,'color':'white'}),
                                 width=12  # Takes up the full row width
                             ),
                             dbc.Col(
@@ -159,50 +160,6 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                            ])
                        ,fluid=True),
                 html.Br(),
-                html.Br(),
-                html.Div(children=['REFERENCE TABLES'],style={
-                         'fontSize': 32, 'font-weight': 'bold', 'textAlign': 'center'}),
-                 # Reference Tables
-
-                dbc.Container(
-                           dbc.Row([
-                               dbc.Col(
-                                   dbc.Card(
-                                       dbc.CardBody([dash_table.DataTable(
-                                           id='summary_table',
-                                           page_size=24,
-                                           css=[{'selector': 'table', 'rule': 'width: 800px; height: 300px; margin: 0 auto; overflow: auto;'},
-                                                # Adjusting font size for table cells
-                                                {'selector': 'td',
-                                                 'rule': 'font-size: 12px;'},
-                                                {'selector': 'th',
-                                                 'rule': 'font-size: 12px; font-weight: bold;'}
-                                                ]
-                                       )], className="p-0"),
-                                       className="shadow-sm m-2"
-                                   ),
-                                   width=6  # Takes up 8/12 of the row (70% equivalent)
-                               ),
-                               dbc.Col(
-                                   dbc.Card(
-                                       dbc.CardBody([dash_table.DataTable(
-                                           id='percent_table',
-                                           page_size=24,
-                                           css=[{'selector': 'table', 'rule': 'width: 800px; height: 300px; margin: 0 auto; overflow: auto;'},
-                                                # Adjusting font size for table cells
-                                                {'selector': 'td',
-                                                 'rule': 'font-size: 12px;'},
-                                                {'selector': 'th',
-                                                 'rule': 'font-size: 12px; font-weight: bold;'}
-                                                ]
-                                       )], className='p-0'),
-                                       className="shadow-sm m-2"
-                                   ),
-                                   width=6  # Takes up 4/12 of the row (30% equivalent)
-                               )
-                           ])
-                       ,fluid=True),
-            
                  ],
                 label='Single Day'),
             dcc.Tab(children=[
@@ -255,8 +212,8 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
 # Callback for the daily tab
 @callback(
     #Output(component_id='date_display', component_property='children'),
-    Output('summary_table', component_property='data'),
-    Output('percent_table', 'data'),
+    #Output('summary_table', component_property='data'),
+    #Output('percent_table', 'data'),
     Output('asset_gen', 'figure'),
     Output('clean_fossil_gen', 'figure'),
     Output('gen_price', 'figure'),
@@ -267,38 +224,39 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
 
     Input(component_id='date-picker-single', component_property='date'))
 # Calls functions with updated date to make dash reactive to selected date
-def update_date(user_selected):
+def update_daily(date='2024-01-01'):
     # The function argument comes from the component property of the Input
-    print(user_selected)
-    df_daily = app_data_new.price_ei_vol_day(user_selected)
-
-    summary_data = app_data_new.df_hourly(user_selected).to_dict('records')
-    percent_data = app_data_new.df_percent(user_selected).to_dict('records')
-    asset_gen_fig = px.area(df_daily[0], x='Date (MST)', y="Volume", color="Fuel Type", color_discrete_map=color_map, 
+    print(date)
+    date = date
+    tester = app_data_new_2.date_restrict_daily(date)
+    #df_daily = app_data_new_2.price_ei_vol_day(user_selected)
+    #summary_data = app_data_new_2.df_hourly(user_selected).to_dict('records')
+    #percent_data = app_data_new_2.df_percent(user_selected).to_dict('records')
+    asset_gen_fig = px.area(tester[0], x='Date (MST)', y="Volume", color="Fuel Type", color_discrete_map=color_map, 
                             title='Hourly generation on AESO by asset & fuel type', labels={
                             "y": "Generation Volume MWh"})
 
     asset_gen_fig.update_layout(yaxis_title='Generation Volume (MW)')
-    clean_ff_fig = px.line(df_daily[1], x='Date (MST)', y=['Total Load', 'Net Load'], color_discrete_sequence=[
+    clean_ff_fig = px.line(tester[1], x='Date (MST)', y=['Total Load', 'Net Load'], color_discrete_sequence=[
                            'black', 'gray'], range_y=[0, None], labels={"y": "Generation Volume MWh"})
     clean_ff_fig.update_layout(title = '% Generation from Renewable vs. Fossil Fuel sources',
                                yaxis_title='Generation Volume (MW)')
-    price_fig = px.line(df_daily[1], x='Date (MST)', y='Avg. Price')
+    price_fig = px.line(tester[1], x='Date (MST)', y='Avg. Price')
     price_fig.update_layout(title='Hourly Marginal Price',
                             yaxis_title='Average Hourly Price ($/MW)')
-    storage_fig = px.area(app_data_new.df_hourly(user_selected), x='Date (MST)', y='ENERGY STORAGE')
+    storage_fig = px.area(tester[1], x='Date (MST)', y='ENERGY STORAGE')
     storage_fig.update_layout(title = 'Hourly Energy Storage Charge/Discharge',
                               yaxis_title='Energy Storage Volume (MW)')
-    EI_fig = px.scatter(df_daily[1], x='Date (MST)', y='RE_percent',
+    EI_fig = px.scatter(tester[1], x='Date (MST)', y='RE_percent',
                         color='EI', color_continuous_scale=['green', 'yellow', '#D62728'])
     EI_fig.update_layout(title='Emission Intensity of Generated Electricity (tonsCO2e/MWh)',
                         yaxis_title='% Generation from Renewables')
     # title='% Generation over timeframe')
-    gen_pie_daily = px.pie(df_daily[0], values='Volume', names='Fuel Type', color = 'Fuel Type',
+    gen_pie_daily = px.pie(tester[0], values='Volume', names='Fuel Type', color = 'Fuel Type',
                            color_discrete_map=color_map, title='Generation by source')
     # The returned object is assigned to the component property of the Output
     #removed user_selected from the return below since i dont want it on the page for debugging anymore.
-    return summary_data, percent_data, asset_gen_fig, clean_ff_fig, price_fig, storage_fig, EI_fig, gen_pie_daily, user_selected
+    return asset_gen_fig, clean_ff_fig, price_fig, storage_fig, EI_fig, gen_pie_daily, date
 
 
 @callback(  # WORKING HERE TO CHANGE THE OUTPUT TEXT. REFER TO EXAMPLE ON PLOTLY FORUM
@@ -309,38 +267,30 @@ def update_date(user_selected):
     
     Input('my-date-picker-range', 'start_date'),
     Input('my-date-picker-range', 'end_date'))
-def update_output(start_date, end_date):
-    #renge = f"{start_date}   -->   {end_date}"
-    #print(renge)
+def update_multi(start_date='2024-01-01', end_date='2024-01-03'):
+    renge = f"{start_date}   -->   {end_date}"
+    print(renge)
     if start_date <= end_date:
-        df_multi = app_data_new.price_ei_vol_week(start_date, end_date)
-        gen_multi = px.area(df_multi[1], x='Date (MST)', y="Volume", color="Fuel Type", 
+        tester = app_data_new_2.date_restrict(start_date,end_date)
+        gen_multi = px.area(tester[0], x='Date (MST)', y="Volume", color="Fuel Type", 
                             color_discrete_map=color_map, title = 'Generation by asset type', 
                             labels={"y": "Generation Volume MWh"})
-        # , title='% Generation over timeframe')
-        gen_pie_multi = px.pie(df_multi[1], values='Volume', names='Fuel Type', color = 'Fuel Type',
+
+        gen_pie_multi = px.pie(tester[0], values='Volume', names='Fuel Type', color = 'Fuel Type',
                                color_discrete_map=color_map, title='% generation by asset type')
     else:
         gen_multi = 'LOADING...'
         gen_pie_multi = 'LOADING...'
-        # multi_gen = px.area(app_data_new.price_ei_vol_week(start_date,end_date=start_date)[1], x='Date (MST)', y="Volume", color="Fuel Type",labels={"y": "Generation Volume MWh"})
-        # gen_pie_multi = px.pie(app_data_new.price_ei_vol_week(start_date,end_date=start_date)[1], values='Volume', names='Fuel Type', title='% Generation over timeframe')
+
 
     return gen_multi, gen_pie_multi, start_date
 
-# @callback(
-#     Output('asset_gen_multi','figure'),
-#     Input('my-date-picker-range', 'start_date'),
-#     Input('my-date-picker-range', 'end_date')
-#     )
-# def update_multi(start_date,end_date):
-#     gen_fig_multi = px.area(app_data_new.price_ei_vol_day(start_date,end_date), x='Date (MST)', y="Volume", color="Fuel Type",labels={"y": "Generation Volume MWh"})
-#     return gen_fig_multi
+
 
 
 # The following code is for running locally in a browser
 if __name__ == '__main__':
-    app.run_server(port=2223)
+    app.run_server(port=2224)
 
 #This is for running the dash on Ploomber.io
 # server = app.server
