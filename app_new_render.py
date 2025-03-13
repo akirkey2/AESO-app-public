@@ -312,8 +312,7 @@ def update_multi(start_date='2024-01-01', end_date='2024-01-03'):
 
 # The following code is for running locally in a browser
 if __name__ == '__main__':
-    app.run_server()
-#host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    app.run_server(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
 
 #This is for running the dash on Ploomber.io
 # server = app.server
