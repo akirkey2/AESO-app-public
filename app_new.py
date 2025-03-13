@@ -24,10 +24,11 @@ import plotly.express as px
 from dash import Dash, html, dash_table, dcc, callback, Input, Output
 import dash
 import dash_bootstrap_components as dbc
-import app_data_new_2
+import app_data_new
 import datetime as dt
 from datetime import date
 from datetime import datetime
+import gunicorn
 pio.renderers.default='browser'
 
 #%%  Dash stuff
@@ -203,6 +204,16 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                         ,fluid=True),
 
             ], label='Multi-Day'),
+        dcc.Tab(children=[
+                html.Br(),
+                
+                
+                
+                
+                
+                
+                
+                ], label='Stats & Analysis'),
         ]),  # Closing dcc.Tabs
         html.Br(),
     ]),
@@ -228,32 +239,40 @@ def update_daily(date='2024-01-01'):
     # The function argument comes from the component property of the Input
     print(date)
     date = date
-    tester = app_data_new_2.date_restrict_daily(date)
-    #df_daily = app_data_new_2.price_ei_vol_day(user_selected)
-    #summary_data = app_data_new_2.df_hourly(user_selected).to_dict('records')
-    #percent_data = app_data_new_2.df_percent(user_selected).to_dict('records')
+    tester = app_data_new.date_restrict_daily(date)
+    #df_daily = app_data_new.price_ei_vol_day(user_selected)
+    #summary_data = app_data_new.df_hourly(user_selected).to_dict('records')
+    #percent_data = app_data_new.df_percent(user_selected).to_dict('records')
     asset_gen_fig = px.area(tester[0], x='Date (MST)', y="Volume", color="Fuel Type", color_discrete_map=color_map, 
                             title='Hourly generation on AESO by asset & fuel type', labels={
                             "y": "Generation Volume MWh"})
-
-    asset_gen_fig.update_layout(yaxis_title='Generation Volume (MW)')
+    asset_gen_fig.update_layout(yaxis_title='Generation Volume (MW)',
+                                xaxis_title='Time of Day')
+    
     clean_ff_fig = px.line(tester[1], x='Date (MST)', y=['Total Load', 'Net Load'], color_discrete_sequence=[
                            'black', 'gray'], range_y=[0, None], labels={"y": "Generation Volume MWh"})
     clean_ff_fig.update_layout(title = '% Generation from Renewable vs. Fossil Fuel sources',
                                yaxis_title='Generation Volume (MW)')
+    
     price_fig = px.line(tester[1], x='Date (MST)', y='Avg. Price')
     price_fig.update_layout(title='Hourly Marginal Price',
-                            yaxis_title='Average Hourly Price ($/MW)')
+                            yaxis_title='Average Hourly Price ($/MW)',
+                            xaxis_title='Time of Day')
+    
     storage_fig = px.area(tester[1], x='Date (MST)', y='ENERGY STORAGE')
     storage_fig.update_layout(title = 'Hourly Energy Storage Charge/Discharge',
-                              yaxis_title='Energy Storage Volume (MW)')
+                              yaxis_title='Energy Storage Volume (MW)',
+                              xaxis_title='Time of Day')
+    
     EI_fig = px.scatter(tester[1], x='Date (MST)', y='RE_percent',
                         color='EI', color_continuous_scale=['green', 'yellow', '#D62728'])
     EI_fig.update_layout(title='Emission Intensity of Generated Electricity (tonsCO2e/MWh)',
-                        yaxis_title='% Generation from Renewables')
-    # title='% Generation over timeframe')
+                        yaxis_title='% Generation from Renewables',
+                        xaxis_title='Time of Day')
+    
     gen_pie_daily = px.pie(tester[0], values='Volume', names='Fuel Type', color = 'Fuel Type',
                            color_discrete_map=color_map, title='Generation by source')
+    
     # The returned object is assigned to the component property of the Output
     #removed user_selected from the return below since i dont want it on the page for debugging anymore.
     return asset_gen_fig, clean_ff_fig, price_fig, storage_fig, EI_fig, gen_pie_daily, date
@@ -271,10 +290,12 @@ def update_multi(start_date='2024-01-01', end_date='2024-01-03'):
     renge = f"{start_date}   -->   {end_date}"
     print(renge)
     if start_date <= end_date:
-        tester = app_data_new_2.date_restrict(start_date,end_date)
+        tester = app_data_new.date_restrict(start_date,end_date)
         gen_multi = px.area(tester[0], x='Date (MST)', y="Volume", color="Fuel Type", 
                             color_discrete_map=color_map, title = 'Generation by asset type', 
                             labels={"y": "Generation Volume MWh"})
+        gen_multi.update_layout(yaxis_title='Generation (MWh)',
+                                xaxis_title='Date')
 
         gen_pie_multi = px.pie(tester[0], values='Volume', names='Fuel Type', color = 'Fuel Type',
                                color_discrete_map=color_map, title='% generation by asset type')
@@ -290,7 +311,7 @@ def update_multi(start_date='2024-01-01', end_date='2024-01-03'):
 
 # The following code is for running locally in a browser
 if __name__ == '__main__':
-    app.run_server(port=2224)
+    app.run_server(port=2223)
 
 #This is for running the dash on Ploomber.io
 # server = app.server

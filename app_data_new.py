@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import glob
 import zipfile
+import seaborn as sns
 
 mpl.rcParams.update(mpl.rcParamsDefault)
 plt.rc('axes', axisbelow=True)
@@ -192,3 +193,31 @@ def date_restrict_daily(date='2024-01-01'):
     return df_stacked, df_hourly
 #%% Cell for running fxns
 df_math()
+
+#%%
+start = '2024-01-01'
+end = '2024-12-31'
+temp = date_restrict(start,end)[1]
+
+#%%
+plt.gcf()
+fig,ax = plt.subplots()
+fig = sns.jointplot(temp, x= 'Avg. Price',y= 'RE_percent',kind='hex')
+ax = plt.xlabel('Average Price / kWh')
+ax = plt.ylabel('% Renewable generation')
+#%%
+print(temp['Avg. Price'].corr(temp['RE_percent']))
+print(temp['RE_percent'].describe())
+#%%
+# temp['Time'] = temp['Date (MST)'].dt.time
+plt.figure()
+plt.hist(temp['RE_percent'],20)
+
+cols = ['Date (MST)', 'OTHER', 'OTHER_ghg', 'WIND', 'GAS',
+       'HYDRO',  'SOLAR', 'ENERGY STORAGE',
+        'DUAL FUEL',  'COAL',
+       'Total Load', 'Total_ghg', 'EI', 'Renewable Gen', 'Fossil Fuel Gen',
+       'Net Load', 'RE_percent']
+for y in cols:
+    plt.figure()
+    plt.scatter(temp['Avg. Price'])
