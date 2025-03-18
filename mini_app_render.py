@@ -58,9 +58,8 @@ fuel_types = ['COAL','DUAL FUEL', 'GAS', 'OTHER',
 # Set this template as the default
 pio.templates.default = "custom_template"
 
-app = Dash(__name__)
+app = Dash(__name__,external_stylesheets=[dbc.themes.SANDSTONE])
 server = app.server
-app = Dash(external_stylesheets=[dbc.themes.SANDSTONE])
 app.title = 'AESO Energy Dash'
 app.layout = html.Div(style={'backgroundColor':'#818894'},
                       children=[
