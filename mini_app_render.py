@@ -23,6 +23,7 @@ import plotly.io as pio
 import plotly.express as px
 from dash import Dash, html, dash_table, dcc, callback, Input, Output
 import dash
+from dash import no_update
 import dash_bootstrap_components as dbc
 import datetime as dt
 from datetime import date
@@ -219,8 +220,8 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
 
 # Callback for the daily tab
 
-@callback(  # WORKING HERE TO CHANGE THE OUTPUT TEXT. REFER TO EXAMPLE ON PLOTLY FORUM
-    #Output('date_range_display', 'children'),
+
+@callback(
     Output('asset_gen_multi', 'figure'),
     Output('gen_pie_multi', 'figure'),
     Output('clean_fossil_gen', 'figure'),
@@ -228,60 +229,58 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
     Output('storage_volume', 'figure'),
     Output('EI_graph', 'figure'),
     Output('my-date-picker-range', 'initial_visible_month'),
-    
     Input('my-date-picker-range', 'start_date'),
-    Input('my-date-picker-range', 'end_date'))
-def update_multi(start_date='2024-01-01', end_date='2024-01-03'):
-    renge = f"{start_date}   -->   {end_date}"
-    print(renge)
-    if start_date <= end_date:
-        
-        tester = mini_app_data.date_restrict(start_date,end_date)
-        df_pie = tester[fuel_types].sum().reset_index(name='Sum')
-        
-        gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
-                             title = 'Generation by asset type', 
-                            labels={"y": "Generation Volume MWh"})
-        gen_multi.update_layout(yaxis_title='Generation (MWh)',
-                                xaxis_title='Date')
+    Input('my-date-picker-range', 'end_date')
+)
+def update_multi(start_date, end_date):
+    # Ensure both dates are selected before proceeding
+    if not start_date or not end_date:
+        return no_update  # Prevents update until both dates are selected
 
-        gen_pie_multi = px.pie(df_pie, values='Sum', names='index', color = 'index',
-                               color_discrete_map=color_map, title='% generation by asset type')
-        
-        
-        clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Load', 'Net Load'], color_discrete_sequence=[
-                               'black', 'gray'],  labels={"y": "Generation Volume MWh"})
-        clean_ff_fig.update_layout(title = '% Generation from Renewable vs. Fossil Fuel sources',
-                                   yaxis_title='Generation Volume (MW)',
-                                   yaxis_range=[0, None])
-        
-        price_fig = px.line(tester, x='Date (MST)', y='Price')
-        price_fig.update_layout(title='Hourly Average Price',
-                                yaxis_title='Average Hourly Price ($/MW)',
-                                xaxis_title='Time of Day')
-        
-        storage_fig = px.area(tester, x='Date (MST)', y='ENERGY STORAGE')
-        storage_fig.update_layout(title = 'Hourly Energy Storage Charge/Discharge',
-                                  yaxis_title='Energy Storage Volume (MW)',
-                                  xaxis_title='Time of Day')
-        
-        EI_fig = px.scatter(tester, x='Date (MST)', y='EI',
-                            color='RE_percent', color_continuous_scale=['#D62728', 'yellow', 'green'])
-        EI_fig.update_layout(title='Emission Intensity of Generated Electricity',
-                            yaxis_title='Emission Intensity (tonsCO2e/MWh)',
-                            xaxis_title='Time of Day',
-                            coloraxis_colorbar_title='% Renewables',
-                            coloraxis_colorbar_title_font_size=12)
-        
-        # The returned object is assigned to the component property of the Output
-        #removed user_selected from the return below since i dont want it on the page for debugging anymore.
+    # Ensure start_date is before end_date
+    if start_date > end_date:
+        return no_update  # Prevent update if invalid range is selected
 
-    else:
-        gen_multi = 'LOADING...'
-        gen_pie_multi = 'LOADING...'
+    # Print for debugging
+    print(f"Date Range Selected: {start_date} --> {end_date}")
 
+    # Filter data based on selected date range
+    tester = mini_app_data.date_restrict(start_date, end_date)
+    df_pie = tester[fuel_types].sum().reset_index(name='Sum')
+
+    # Create figures
+    gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
+                         title='Generation by asset type', labels={"y": "Generation Volume MWh"})
+    gen_multi.update_layout(yaxis_title='Generation (MWh)', xaxis_title='Date')
+
+    gen_pie_multi = px.pie(df_pie, values='Sum', names='index', color='index',
+                           color_discrete_map=color_map, title='% generation by asset type')
+
+    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Load', 'Net Load'], color_discrete_sequence=[
+                           'black', 'gray'], labels={"y": "Generation Volume MWh"})
+    clean_ff_fig.update_layout(title='% Generation from Renewable vs. Fossil Fuel sources',
+                               yaxis_title='Generation Volume (MW)', yaxis_range=[0, None])
+
+    price_fig = px.line(tester, x='Date (MST)', y='Price')
+    price_fig.update_layout(title='Hourly Average Price',
+                            yaxis_title='Average Hourly Price ($/MW)',
+                            xaxis_title='Time of Day')
+
+    storage_fig = px.area(tester, x='Date (MST)', y='ENERGY STORAGE')
+    storage_fig.update_layout(title='Hourly Energy Storage Charge/Discharge',
+                              yaxis_title='Energy Storage Volume (MW)',
+                              xaxis_title='Time of Day')
+
+    EI_fig = px.scatter(tester, x='Date (MST)', y='EI',
+                        color='RE_percent', color_continuous_scale=['#D62728', 'yellow', 'green'])
+    EI_fig.update_layout(title='Emission Intensity of Generated Electricity',
+                        yaxis_title='Emission Intensity (tonsCO2e/MWh)',
+                        xaxis_title='Time of Day',
+                        coloraxis_colorbar_title='% Renewables',
+                        coloraxis_colorbar_title_font_size=12)
 
     return gen_multi, gen_pie_multi, clean_ff_fig, price_fig, storage_fig, EI_fig, start_date
+
 
 
 # The following code is for running locally in a browser

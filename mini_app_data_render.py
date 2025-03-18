@@ -26,7 +26,7 @@ mpl.rcParams['lines.markersize'] = 5
 
 #%% Dataframe setup
 
-df_hourly_vol = pd.read_csv('mini_df.csv')
+df_hourly_vol = pd.read_csv('assets/mini_df.csv')
 df_hourly_vol['Date (MST)'] = pd.to_datetime(df_hourly_vol['Date (MST)'], format ='%Y-%m-%d %H:%M:%S')
 
 #%%
