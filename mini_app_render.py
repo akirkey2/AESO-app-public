@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Wed May 15 13:38:59 2024
@@ -28,7 +28,7 @@ import dash_bootstrap_components as dbc
 import datetime as dt
 from datetime import date
 from datetime import datetime
-import mini_app_data
+import mini_app_data_render
 import gunicorn
 
 #%%  Dash stuff
@@ -245,7 +245,7 @@ def update_multi(start_date, end_date):
     print(f"Date Range Selected: {start_date} --> {end_date}")
 
     # Filter data based on selected date range
-    tester = mini_app_data.date_restrict(start_date, end_date)
+    tester = mini_app_data_render.date_restrict(start_date, end_date)
     df_pie = tester[fuel_types].sum().reset_index(name='Sum')
 
     # Create figures
