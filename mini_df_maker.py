@@ -15,7 +15,7 @@ import zipfile
 import gc
 
 
-#%% Dataframe setup
+#%% Generation data master dataset
 # file_path = 'C:\\Users\\Aaron Kirkey\\Documents\\GitHub\\AESO-data\\CSD Generation (Hourly) - 2024-01.csv'
 files = glob.glob('assets/CSD*.zip')
 
@@ -41,6 +41,22 @@ df_hourly_vol = []
 start_date = '2024-01-01'
 date = '2024-01-02'
 
+
+#%% For making temp_master.csv that contains the temp/wind/dew point data from Calgary 2023-2024 
+import pandas as pd
+import glob
+df_list = []
+folder = glob.glob('assets/Temp Data/*.csv')
+for f in folder:
+    temp = pd.read_csv(f, usecols=['Date/Time (LST)','Year','Month','Day','Time (LST)',
+                              'Temp (°C)','Dew Point Temp (°C)','Wind Spd (km/h)'])
+    df_list.append(temp)
+df = pd.concat(df_list)
+
+df['Date/Time (LST)'] = pd.to_datetime(df['Date/Time (LST)'],format='%Y-%m-%d %H:%M')
+df = df.sort_values(['Date/Time (LST)'])
+df = df.rename(columns={"Date/Time (LST)": "Date (MST)"}) 
+df.to_csv('assets/temp_master.csv',index=False)
 #%% Prepping dataframe
 
 def df_math():
@@ -132,9 +148,15 @@ def df_math():
                 .reset_index(drop=True)[['Date (MST)','Price']]
                 )
     #Merging Generation hourly dataset with the price dataset
-    
     df_hourly_vol = pd.merge(df_hourly_vol,df_price,how='left',on='Date (MST)')
     df_hourly_vol['RE_percent'] = ((df_hourly_vol['Renewable Gen'] / df_hourly_vol['Total Load']) *100).round(decimals = 1)
+    print(df_hourly_vol.head())
+    temp_master = pd.read_csv('assets/temp_master.csv',usecols=['Date (MST)',
+                              'Temp (°C)','Dew Point Temp (°C)','Wind Spd (km/h)'])
+    temp_master['Date (MST)'] = pd.to_datetime(temp_master['Date (MST)'], format ='%Y-%m-%d %H:%M:%S')
+    temp_master = temp_master.loc[temp_master['Date (MST)'].dt.date >= pd.to_datetime('2024-01-01').date()]
+    df_hourly_vol = pd.merge(df_hourly_vol,temp_master,how='left',on='Date (MST)')
+    
     
     #Time check
     diff = datetime.now() - start_time
@@ -143,7 +165,7 @@ def df_math():
     return df_hourly_vol
 
 
-#%%
+#%% df date_restrict
 start_date='2024-01-01'
 date = '2024-01-02'
 def date_restrict(start_date='2024-01-01',end_date=start_date):
@@ -177,4 +199,6 @@ def date_restrict_daily(date='2024-01-01'):
     return df_hourly
 #%% Cell for running fxns
 data = df_math()
+
+#%%
 df_math().to_csv('assets/mini_df.csv',index=False)

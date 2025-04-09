@@ -64,21 +64,21 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                       children=[
     html.Div([html.H1(children='AESO Energy Dash', style={'textAlign': 'center', 'fontSize': 48,'color':'white'}),
               html.Br(),
-              html.Div(children="""*Disclaimer: This web-dash and contents are in no way 
+              html.Div(children="""*Disclaimer: This dashboard and contents are in no way 
              affiliated with the AESO and serves only as a personal project to 
-             improve my data science and data viz skillset with respect to grid
+             improve my data science and data viz skills with respect to grid
              data. For questions, comments or improvement ideas, please contact
              me at: akirkey2@gmail.com with the subject line 'AESO dash project'.
-             Thank you for your interest!""", style={'color':'white'})]),
+             Thank you for your interest!""", style={'color':'white','margin-left':'20px'})]),
     html.Br(),
 
     html.Div([
 
         dcc.Tabs([
             dcc.Tab(children=[
-                html.Br(),
-                html.Div(children='Chose date range:',
-                         style={'fontSize': 17}),
+                dbc.Col(dbc.Card(children=[
+                    html.Div(children='Choose date range:',
+                         style={'fontSize': 18,'color':'black'}),
                 html.Div(
                     dcc.DatePickerRange(
                         id='my-date-picker-range',
@@ -87,17 +87,15 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                         initial_visible_month=date(2024, 1, 1),  # Default month
                         start_date=date(2024, 1, 1),
                         end_date=date(2024, 1, 4)
-                    )
-                ),
+                        )
+                    ) # closes div around date picker
+                ], className="shadow-sm m-3"), #closes dbc card
+                width = 2
+            ),#closes dbc col
                 html.Div(id="date-picker-container"),  # Placeholder for dynamic updates
-                html.Br(),
-                # Visual feedback on page displaying date
-                #html.Div(children='Dates chosen: (for debugging)*',
-               #          style={'fontSize': 20}),
-                #dcc.Markdown(id='date_range_display', children=''),
-                #html.Br(),                 html.Br(),            
+
                                  
-                                 # This Div is a graph with title, left adjusted beside the following Div
+                                 # This Div contains first 2 graphs
                                  dbc.Container(
                                             dbc.Row([
                                                 dbc.Col(
