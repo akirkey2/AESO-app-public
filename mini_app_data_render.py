@@ -36,7 +36,7 @@ def date_restrict(start_date='2024-01-01',end_date=start_date):
     print('Function date_restrict() called')
     # Restricting df to desired dates, in app this value comes from the callback
         
-    start_date = pd.to_datetime(start_date).date() #Format: %Y/%m/%d
+    start_date = pd.to_datetime(start_date).date() #Format: %Y-%m-%d
     end_date = pd.to_datetime(end_date).date()  #Same format
 
     # You have to use .dt.date for series and .date() for individual strings

@@ -247,6 +247,14 @@ def update_multi(start_date, end_date):
     # Create figures
     gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
                          title='Generation by asset type', labels={"y": "Generation Volume MWh"})
+    gen_multi.add_hline(y=tester['Total Load'].mean(),
+        line_dash="dash",
+        label=dict(
+            text='Mean Total Generation',
+            textposition="top right",
+            font=dict(size=14, color="black"),
+            yanchor="top",
+        ))
     gen_multi.update_layout(yaxis_title='Generation (MWh)', xaxis_title='Date')
 
     gen_pie_multi = px.pie(df_pie, values='Sum', names='index', color='index',
