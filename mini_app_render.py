@@ -30,9 +30,6 @@ from datetime import datetime
 import mini_app_data_render
 import gunicorn
 
-#%%  Dash stuff
-# datte = '2024-01-06' # Placeholder value
-
 # Define a global template with a centered title
 pio.templates["custom_template"] = pio.templates["plotly_white"]
 pio.templates["custom_template"]["layout"]["title"] = {
@@ -174,7 +171,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
             
         dcc.Tab(children=[
                 html.Br(),
-                [html.H2(children='Generated Electricity and Emissions', style={'textAlign': 'Left', 'fontSize': 40,'color':'white','margin-left':'20px'}),
+                html.H2(children='Generated Electricity and Emissions', style={'textAlign': 'Left', 'fontSize': 40,'color':'white','margin-left':'20px'}),
                  html.Br(),
                 
                 dbc.Container(
@@ -290,15 +287,15 @@ def update_multi(start_date, end_date):
 
     # Filter data based on selected date range
     tester = mini_app_data_render.date_restrict(start_date, end_date)
-     df_pie = tester[fuel_types].sum().reset_index(name='Sum')
-     df_pie['Source'] = df_pie['index'].map(fuel_dict)
-     df_pie['percent'] = (df_pie['Sum'] / df_pie['Sum'].sum())*100
-     ffg = df_pie.loc[df_pie['Source']=='Fossil Fuel']['percent'].sum()
-     reg = df_pie.loc[df_pie['Source']=='Renewable']['percent'].sum()
+    df_pie = tester[fuel_types].sum().reset_index(name='Sum')
+    df_pie['Source'] = df_pie['index'].map(fuel_dict)
+    df_pie['percent'] = (df_pie['Sum'] / df_pie['Sum'].sum())*100
+    ffg = df_pie.loc[df_pie['Source']=='Fossil Fuel']['percent'].sum()
+    reg = df_pie.loc[df_pie['Source']=='Renewable']['percent'].sum()
      # Create figures
-     gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
+    gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
                           title='Generation by asset type', labels={"y": "Generation Volume MWh"})
-     gen_multi.add_hline(y=tester['Total Load'].mean(),
+    gen_multi.add_hline(y=tester['Total Load'].mean(),
          line_dash="dash",
          label=dict(
              text='Mean Total Generation',
@@ -306,11 +303,11 @@ def update_multi(start_date, end_date):
              font=dict(size=14, color="black"),
              yanchor="bottom",
          ))
-     gen_multi.update_layout(yaxis_title='Generation (MWh)', xaxis_title='Date')
-     gen_pie_multi = px.pie(df_pie,values='percent',names='index',color='index',
+    gen_multi.update_layout(yaxis_title='Generation (MWh)', xaxis_title='Date')
+    gen_pie_multi = px.pie(df_pie,values='percent',names='index',color='index',
                             color_discrete_map=color_map, title='% generation by asset type')
-     gen_pie_multi.update_traces(texttemplate='%{value:.1f}%')
-     gen_pie_multi.add_annotation(text=f"Fossil Fuels:{ffg:.1f}%, Renewables:{reg:.1f}%",
+    gen_pie_multi.update_traces(texttemplate='%{value:.1f}%')
+    gen_pie_multi.add_annotation(text=f"Fossil Fuels:{ffg:.1f}%, Renewables:{reg:.1f}%",
                    xref="paper", yref="paper", font={'size':14},
                    x=-0.0, y=-0.15, showarrow=False)
 
