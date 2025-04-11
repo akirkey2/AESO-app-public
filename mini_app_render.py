@@ -54,6 +54,20 @@ color_map = {
 fuel_types = ['COAL','DUAL FUEL', 'GAS', 'OTHER',
               'ENERGY STORAGE','HYDRO', 'SOLAR','WIND']
 
+
+fuel_dict = {
+    'COAL':'Fossil Fuel',
+    'DUAL FUEL':'Fossil Fuel',
+    'COAL':'Fossil Fuel',
+    'GAS':'Fossil Fuel',
+    'HYDRO':'Renewable',
+    'SOLAR':'Renewable',
+    'WIND':'Renewable',
+    'OTHER':'Other',
+    'ENERGY STORAGE':'Other'
+    }
+
+
 # Set this template as the default
 pio.templates.default = "custom_template"
 
@@ -160,6 +174,40 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
             
         dcc.Tab(children=[
                 html.Br(),
+                [html.H2(children='Generated Electricity and Emissions', style={'textAlign': 'Left', 'fontSize': 40,'color':'white','margin-left':'20px'}),
+                 html.Br(),
+                
+                dbc.Container(
+                           dbc.Row([
+                               dbc.Col(
+                                   dbc.Card(
+                                       dbc.CardBody([html.Img(src=app.get_asset_url("EI and RE month as color.png"),style={'width': 'auto', 'height': 'auto'})], className="p-0"),
+                                       className="shadow-sm m-2"
+                                   ),
+                                   width=6  # Takes up 8/12 of the row (70% equivalent)
+                               ),
+                               dbc.Col(
+                                   dbc.Card(
+                                       dbc.CardBody([html.P("""In 
+                                                            
+                                                            Additionally, the histogram on top of the scatter shows us that hourly prices are clustered on the low-end.
+                                                            The scatter can be misleading in this way as it's hard to quickly understand what the mean and median power prices may be.
+                                                            Mean: $63, Median: $31, 25th P: $19, 75thP: $48.
+                                                     """)], className='p-0'),
+                                       className="shadow-sm m-2"
+                                   ),
+                                   width=6  
+                               )
+                           ])
+                       ,fluid=True),
+                
+                
+                
+                
+                
+                
+                
+                
                 dbc.Container(
                            dbc.Row([
                                dbc.Col(
@@ -242,23 +290,29 @@ def update_multi(start_date, end_date):
 
     # Filter data based on selected date range
     tester = mini_app_data_render.date_restrict(start_date, end_date)
-    df_pie = tester[fuel_types].sum().reset_index(name='Sum')
-
-    # Create figures
-    gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
-                         title='Generation by asset type', labels={"y": "Generation Volume MWh"})
-    gen_multi.add_hline(y=tester['Total Load'].mean(),
-        line_dash="dash",
-        label=dict(
-            text='Mean Total Generation',
-            textposition="top right",
-            font=dict(size=14, color="black"),
-            yanchor="top",
-        ))
-    gen_multi.update_layout(yaxis_title='Generation (MWh)', xaxis_title='Date')
-
-    gen_pie_multi = px.pie(df_pie, values='Sum', names='index', color='index',
-                           color_discrete_map=color_map, title='% generation by asset type')
+     df_pie = tester[fuel_types].sum().reset_index(name='Sum')
+     df_pie['Source'] = df_pie['index'].map(fuel_dict)
+     df_pie['percent'] = (df_pie['Sum'] / df_pie['Sum'].sum())*100
+     ffg = df_pie.loc[df_pie['Source']=='Fossil Fuel']['percent'].sum()
+     reg = df_pie.loc[df_pie['Source']=='Renewable']['percent'].sum()
+     # Create figures
+     gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
+                          title='Generation by asset type', labels={"y": "Generation Volume MWh"})
+     gen_multi.add_hline(y=tester['Total Load'].mean(),
+         line_dash="dash",
+         label=dict(
+             text='Mean Total Generation',
+             textposition="end",
+             font=dict(size=14, color="black"),
+             yanchor="bottom",
+         ))
+     gen_multi.update_layout(yaxis_title='Generation (MWh)', xaxis_title='Date')
+     gen_pie_multi = px.pie(df_pie,values='percent',names='index',color='index',
+                            color_discrete_map=color_map, title='% generation by asset type')
+     gen_pie_multi.update_traces(texttemplate='%{value:.1f}%')
+     gen_pie_multi.add_annotation(text=f"Fossil Fuels:{ffg:.1f}%, Renewables:{reg:.1f}%",
+                   xref="paper", yref="paper", font={'size':14},
+                   x=-0.0, y=-0.15, showarrow=False)
 
     clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Load', 'Net Load'], color_discrete_sequence=[
                            'black', 'gray'], labels={"y": "Generation Volume MWh"})
@@ -266,6 +320,14 @@ def update_multi(start_date, end_date):
                                yaxis_title='Generation Volume (MW)', yaxis_range=[0, None])
 
     price_fig = px.line(tester, x='Date (MST)', y='Price')
+    price_fig.add_hline(y=tester['Price'].mean(),
+        line_dash="dash",
+        label=dict(
+            text='Mean Price',
+            textposition="end",
+            font=dict(size=14, color="black"),
+            yanchor="top",
+        ))
     price_fig.update_layout(title='Hourly Average Price',
                             yaxis_title='Average Hourly Price ($/MW)',
                             xaxis_title='Time of Day')
@@ -277,6 +339,14 @@ def update_multi(start_date, end_date):
 
     EI_fig = px.scatter(tester, x='Date (MST)', y='EI',
                         color='RE_percent', color_continuous_scale=['#D62728', 'yellow', 'green'])
+    gen_multi.add_hline(y=tester['EI'].mean(),
+        line_dash="dash",
+        label=dict(
+            text='Mean EI',
+            textposition="top right",
+            font=dict(size=14, color="black"),
+            yanchor="top",
+        ))
     EI_fig.update_layout(title='Emission Intensity of Generated Electricity',
                         yaxis_title='Emission Intensity (tonsCO2e/MWh)',
                         xaxis_title='Time of Day',
