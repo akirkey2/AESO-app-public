@@ -252,7 +252,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                            ])
                        ,fluid=True),
                 
-                ], label='Stats & Analysis'),
+                ], label='Stats & Analysis **Work in Progress**'),
         ]),  # Closing dcc.Tabs
         html.Br(),
     ]),
@@ -273,6 +273,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
     Input('my-date-picker-range', 'start_date'),
     Input('my-date-picker-range', 'end_date')
 )
+
 def update_multi(start_date, end_date):
     # Ensure both dates are selected before proceeding
     if not start_date or not end_date:
@@ -294,7 +295,7 @@ def update_multi(start_date, end_date):
     reg = df_pie.loc[df_pie['Source']=='Renewable']['percent'].sum()
      # Create figures
     gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
-                          title='Generation by asset type', labels={"y": "Generation Volume MWh"})
+                          title='Generation by asset type', labels={"y": "Generation Volume MW"})
     gen_multi.add_hline(y=tester['Total Load'].mean(),
          line_dash="dash",
          label=dict(
@@ -303,7 +304,7 @@ def update_multi(start_date, end_date):
              font=dict(size=14, color="black"),
              yanchor="bottom",
          ))
-    gen_multi.update_layout(yaxis_title='Generation (MWh)', xaxis_title='Date')
+    gen_multi.update_layout(yaxis_title='Generation (MW)', xaxis_title='Date')
     gen_pie_multi = px.pie(df_pie,values='percent',names='index',color='index',
                             color_discrete_map=color_map, title='% generation by asset type')
     gen_pie_multi.update_traces(texttemplate='%{value:.1f}%')
@@ -311,9 +312,9 @@ def update_multi(start_date, end_date):
                    xref="paper", yref="paper", font={'size':14},
                    x=-0.0, y=-0.15, showarrow=False)
 
-    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Load', 'Net Load'], color_discrete_sequence=[
-                           'black', 'gray'], labels={"y": "Generation Volume MWh"})
-    clean_ff_fig.update_layout(title='% Generation from Renewable vs. Fossil Fuel sources',
+    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Fossil Fuel Gen', 'Renewable Gen'], color_discrete_sequence=[
+                           'black', 'green'], labels={"y": "Generation Volume MWh"})
+    clean_ff_fig.update_layout(title='Generation from Renewable vs. Fossil Fuel sources',
                                yaxis_title='Generation Volume (MW)', yaxis_range=[0, None])
 
     price_fig = px.line(tester, x='Date (MST)', y='Price')
@@ -323,10 +324,10 @@ def update_multi(start_date, end_date):
             text='Mean Price',
             textposition="end",
             font=dict(size=14, color="black"),
-            yanchor="top",
+            yanchor="bottom",
         ))
     price_fig.update_layout(title='Hourly Average Price',
-                            yaxis_title='Average Hourly Price ($/MW)',
+                            yaxis_title='Average Hourly Price ($/MWh)',
                             xaxis_title='Time of Day')
 
     storage_fig = px.area(tester, x='Date (MST)', y='ENERGY STORAGE')
@@ -336,19 +337,20 @@ def update_multi(start_date, end_date):
 
     EI_fig = px.scatter(tester, x='Date (MST)', y='EI',
                         color='RE_percent', color_continuous_scale=['#D62728', 'yellow', 'green'])
-    gen_multi.add_hline(y=tester['EI'].mean(),
+    EI_fig.add_hline(y=tester['EI'].mean(),
         line_dash="dash",
         label=dict(
             text='Mean EI',
-            textposition="top right",
+            textposition="end",
             font=dict(size=14, color="black"),
-            yanchor="top",
+            yanchor="bottom",
         ))
     EI_fig.update_layout(title='Emission Intensity of Generated Electricity',
-                        yaxis_title='Emission Intensity (tonsCO2e/MWh)',
+                        yaxis_title='Emission Intensity (gCO2e/kWh)',
                         xaxis_title='Time of Day',
                         coloraxis_colorbar_title='% Renewables',
                         coloraxis_colorbar_title_font_size=12)
+
 
     return gen_multi, gen_pie_multi, clean_ff_fig, price_fig, storage_fig, EI_fig, start_date
 

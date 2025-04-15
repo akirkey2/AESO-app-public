@@ -48,18 +48,5 @@ def date_restrict(start_date='2024-01-01',end_date=start_date):
     
     return  df_hourly
 
-def date_restrict_daily(date='2024-01-01'):
-    print('Function date_restrict_daily() called')
-    # Restricting df to desired dates, in app this value comes from the callback
-        
-    date = pd.to_datetime(date).date() #Format: %Y/%m/%d
-
-    # You have to use dt.date for series and .date() for individual strings
-    #df_stacked = dfg.loc[(dfg['Date (MST)'].dt.date == date)]
-    
-    df_hourly = df_hourly_vol.loc[(df_hourly_vol['Date (MST)'].dt.date == date)] 
-                                  
-    
-    return df_hourly
 #%% Cell for running fxns
 
