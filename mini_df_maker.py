@@ -141,12 +141,12 @@ def df_math():
     # Getting price data
     file = 'assets/price_data/P&A Table_Full Data_data.csv' 
     df_price = pd.read_csv(file)
-    df_price = df_price.rename(columns={'Date - MST':'Date (MST)'})
+    df_price = df_price.rename(columns={'Date - MST':'Date (MST)','AIL':'Total Load'})
     df_price['Date (MST)'] = pd.to_datetime(df_price['Date (MST)'], format ='%m/%d/%Y %I:%M:%S %p')
     df_price = (
                 df_price
                 .sort_values(by=['Date (MST)'])
-                .reset_index(drop=True)[['Date (MST)','Price','AIL']]
+                .reset_index(drop=True)[['Date (MST)','Price','Total Load']]
                 )
     #Merging Generation hourly dataset with the price dataset
     df_hourly_vol = pd.merge(df_hourly_vol,df_price,how='left',on='Date (MST)')

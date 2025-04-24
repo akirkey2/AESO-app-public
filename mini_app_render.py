@@ -75,6 +75,7 @@ def date_restrict(start_date='2024-01-01',end_date=start_date):
     
     return  df_hourly
 #%%
+
 # Set this template as the default
 pio.templates.default = "custom_template"
 
@@ -195,7 +196,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                                ),
                                dbc.Col(
                                    dbc.Card(
-                                       dbc.CardBody([html.P("""Electricity in Alberta remains among the dirtiest of all the provinces in large part due to a lack of
+                                       dbc.CardBody([html.P(["""Electricity in Alberta remains among the dirtiest of all the provinces in large part due to a lack of
                                                             hydro power that other provinces such as Ontario, British Columbia, Quebec and Manitoba boast. That being said, AESO is 
                                                             making strides in reducing the emissions intensity (EI) of its generated power as shown in the figure to the left."""
                                                             ,html.Br(), html.Br(),
@@ -219,7 +220,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                                                      However, during peak load events, all generating assets must be dispatched meaning more expensive gas (and previously coal) plants operate at their maximum output and since the
                                                      energy mix on AESO is dominated by fossil fuels, this increases EI. Peak loads are typically in winter in cold climates and
                                                      the summer in hot climates due to the energy used in heating and cooling our living spaces. This manifests as an increase 
-                                                     in EI during very hot or very cold spells. Peak load on AESO tends to be in the winter, with hotter periods seeing a small bump as well.""")], className='p-0'),
+                                                     in EI during very hot or very cold spells. Peak load on AESO tends to be in the winter, with hotter periods seeing a small bump as well."""])], className='p-0'),
                                        className="shadow-sm m-2"
                                    ),
                                    width=6  
@@ -341,18 +342,18 @@ def update_multi(start_date, end_date):
                    xref="paper", yref="paper", font={'size':14},
                    x=-0.0, y=-0.15, showarrow=False)
 
-    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Generation', 'AIL'], 
-                          color_discrete_sequence=['black', 'green'], labels={"y": "Volume MWh"})
-    clean_ff_fig.add_trace(go.Scatter(
-                            x=tester['Date (MST)'],
-                            y=tester['Total Generation'],
-                            mode='lines',
-                            name='Total Generation',
-                            fill='tonexty',
-                            line=dict(color='black'),
-                            fillcolor='rgba(255, 0, 0, 0.2)'  # Transparent fill
-                        ))
-    clean_ff_fig.update_layout(title='Total Generation and Alberta Internal Load',
+    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Generation', 'Total Load'], 
+                          color_discrete_sequence=['black', 'red'], labels={"y": "Volume MWh"})
+    # clean_ff_fig.add_trace(go.Scatter(
+    #                         x=tester['Date (MST)'],
+    #                         y=tester['Total Generation'],
+    #                         mode='lines',
+    #                         name='Total Generation',
+    #                         fill='tonexty',
+    #                         line=dict(color='black'),
+    #                         fillcolor='rgba(255, 0, 0, 0.2)'  # Transparent fill
+    #                   ))
+    clean_ff_fig.update_layout(title='Total Generation and AESO Internal Load',
                                yaxis_title='Volume (MW)', yaxis_range=[0, None],
                                xaxis_title='Date')
     
@@ -397,6 +398,7 @@ def update_multi(start_date, end_date):
 
 
 
+#%%
 # The following code is for running locally in a browser
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
