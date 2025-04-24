@@ -11,11 +11,11 @@ import pandas as pd
 import os
 import plotly.io as pio
 import plotly.express as px
+import plotly.graph_objects as go
 from dash import Dash, html, dcc, callback, Input, Output
 from dash import no_update
 import dash_bootstrap_components as dbc
 from datetime import date
-import mini_app_data_render
 import gunicorn
 
 # Define a global template with a centered title
@@ -316,7 +316,7 @@ def update_multi(start_date, end_date):
     print(f"Date Range Selected: {start_date} --> {end_date}")
 
     # Filter data based on selected date range
-    tester = mini_app_data_render.date_restrict(start_date, end_date)
+    tester = date_restrict(start_date, end_date)
     df_pie = tester[fuel_types].sum().reset_index(name='Sum')
     df_pie['Source'] = df_pie['index'].map(fuel_dict)
     df_pie['percent'] = (df_pie['Sum'] / df_pie['Sum'].sum())*100
@@ -341,8 +341,8 @@ def update_multi(start_date, end_date):
                    xref="paper", yref="paper", font={'size':14},
                    x=-0.0, y=-0.15, showarrow=False)
 
-   clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Generation', 'AIL'], color_discrete_sequence=[
-                           'black', 'green'], labels={"y": "Volume MWh"})
+    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Generation', 'AIL'], 
+                          color_discrete_sequence=['black', 'green'], labels={"y": "Volume MWh"})
     clean_ff_fig.add_trace(go.Scatter(
                             x=tester['Date (MST)'],
                             y=tester['Total Generation'],
