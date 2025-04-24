@@ -15,9 +15,25 @@ import zipfile
 import gc
 
 
+#%% For making temp_master.csv that contains the temp/wind/dew point data from Calgary 2023-2024 
+import pandas as pd
+import glob
+df_list = []
+folder = glob.glob('assets/temp_data/*.csv')
+for f in folder:
+    temp = pd.read_csv(f, usecols=['Date/Time (LST)','Temp (°C)',
+                                   'Hmdx','Dew Point Temp (°C)','Wind Spd (km/h)'])
+    df_list.append(temp)
+df = pd.concat(df_list)
+
+df['Date/Time (LST)'] = pd.to_datetime(df['Date/Time (LST)'],format='%Y-%m-%d %H:%M')
+df = df.sort_values(['Date/Time (LST)'])
+df = df.rename(columns={"Date/Time (LST)": "Date (MST)"}) 
+df.to_csv('assets/temp_master.csv',index=False)
+
 #%% Generation data master dataset
 # file_path = 'C:\\Users\\Aaron Kirkey\\Documents\\GitHub\\AESO-data\\CSD Generation (Hourly) - 2024-01.csv'
-files = glob.glob('assets/CSD*.zip')
+files = glob.glob('assets/gen_data/CSD*.zip')
 
 chunk_size = 10000
 df_list = []
@@ -41,22 +57,6 @@ df_hourly_vol = []
 start_date = '2024-01-01'
 date = '2024-01-02'
 
-
-#%% For making temp_master.csv that contains the temp/wind/dew point data from Calgary 2023-2024 
-import pandas as pd
-import glob
-df_list = []
-folder = glob.glob('assets/Temp Data/*.csv')
-for f in folder:
-    temp = pd.read_csv(f, usecols=['Date/Time (LST)','Year','Month','Day','Time (LST)',
-                              'Temp (°C)','Dew Point Temp (°C)','Wind Spd (km/h)'])
-    df_list.append(temp)
-df = pd.concat(df_list)
-
-df['Date/Time (LST)'] = pd.to_datetime(df['Date/Time (LST)'],format='%Y-%m-%d %H:%M')
-df = df.sort_values(['Date/Time (LST)'])
-df = df.rename(columns={"Date/Time (LST)": "Date (MST)"}) 
-df.to_csv('assets/temp_master.csv',index=False)
 #%% Prepping dataframe
 
 def df_math():
@@ -86,7 +86,7 @@ def df_math():
 
     """"Volumes from AESO are in MW and emission factors (above) are in 
     gCO2e/kWh. This means we have to multiply values by 1x10^3 but divide by 1x10^6
-    to get tonsCO2e. This means dividing all values by 1x10^3"""
+    to get tonsCO2e/MWh. This means dividing all values by 1x10^3"""
 
     df['Emissions'] = np.nan
 
@@ -120,17 +120,17 @@ def df_math():
     
     #making total volume column
     fuel_types = [i for i in df['Fuel Type'].unique()]
-    df_hourly_vol['Total Load'] = df_hourly_vol[fuel_types].sum(axis=1)
+    df_hourly_vol['Total Generation'] = df_hourly_vol[fuel_types].sum(axis=1)
     #making hourly total ghg column
     ghg_types  = [x for x in df_hourly_vol.columns if 'ghg' in x]
     df_hourly_vol['Total_ghg'] = df_hourly_vol[ghg_types].sum(axis=1)
     
     #Calculating Emission Intensity (ie gCO2e/kWh)
-    df_hourly_vol['EI'] = (df_hourly_vol['Total_ghg'] / df_hourly_vol['Total Load']) * 1000
+    df_hourly_vol['EI'] = (df_hourly_vol['Total_ghg'] / df_hourly_vol['Total Generation']) * 1000
     #Making columns for renewable volume and FF volume
     df_hourly_vol['Renewable Gen'] = df_hourly_vol.filter(items=['WIND','SOLAR','HYDRO']).sum(axis=1)
     df_hourly_vol['Fossil Fuel Gen'] = df_hourly_vol.filter(items=['OTHER','GAS','COAL','DUAL FUEL']).sum(axis=1)
-    df_hourly_vol['Net Load'] = df_hourly_vol['Total Load'] - (df_hourly_vol['Renewable Gen'])
+    df_hourly_vol['Net Generation'] = df_hourly_vol['Total Generation'] - (df_hourly_vol['Renewable Gen'])
     
     
     #Time check
@@ -139,22 +139,24 @@ def df_math():
     
     
     # Getting price data
-    file = 'assets/P&A Charts_Full Data_data.csv'
+    file = 'assets/price_data/P&A Table_Full Data_data.csv' 
     df_price = pd.read_csv(file)
+    df_price = df_price.rename(columns={'Date - MST':'Date (MST)'})
     df_price['Date (MST)'] = pd.to_datetime(df_price['Date (MST)'], format ='%m/%d/%Y %I:%M:%S %p')
     df_price = (
                 df_price
                 .sort_values(by=['Date (MST)'])
-                .reset_index(drop=True)[['Date (MST)','Price']]
+                .reset_index(drop=True)[['Date (MST)','Price','AIL']]
                 )
     #Merging Generation hourly dataset with the price dataset
     df_hourly_vol = pd.merge(df_hourly_vol,df_price,how='left',on='Date (MST)')
-    df_hourly_vol['RE_percent'] = ((df_hourly_vol['Renewable Gen'] / df_hourly_vol['Total Load']) *100).round(decimals = 1)
+    df_hourly_vol['RE_percent'] = ((df_hourly_vol['Renewable Gen'] / df_hourly_vol['Total Generation']) *100).round(decimals = 1)
     print(df_hourly_vol.head())
-    temp_master = pd.read_csv('assets/temp_master.csv',usecols=['Date (MST)',
-                              'Temp (°C)','Dew Point Temp (°C)','Wind Spd (km/h)'])
+    
+    #Incorporating temp data (pincher creek for temp and windspeed)
+    temp_master = pd.read_csv('assets/temp_master.csv')
     temp_master['Date (MST)'] = pd.to_datetime(temp_master['Date (MST)'], format ='%Y-%m-%d %H:%M:%S')
-    temp_master = temp_master.loc[temp_master['Date (MST)'].dt.date >= pd.to_datetime('2024-01-01').date()]
+    # temp_master = temp_master.loc[temp_master['Date (MST)'].dt.date >= pd.to_datetime('2024-01-01').date()]
     df_hourly_vol = pd.merge(df_hourly_vol,temp_master,how='left',on='Date (MST)')
     
     
@@ -164,11 +166,13 @@ def df_math():
     
     return df_hourly_vol
 
+d = df_math()
+
 
 #%% df date_restrict
 start_date='2024-01-01'
-date = '2024-01-02'
-def date_restrict(start_date='2024-01-01',end_date=start_date):
+date = '2024-12-31'
+def date_restrict(start_date='2024-01-01',end_date='2024-12-31'):
     print('Function date_restrict() called')
     # Restricting df to desired dates, in app this value comes from the callback
         
@@ -184,21 +188,15 @@ def date_restrict(start_date='2024-01-01',end_date=start_date):
     
     return  df_hourly
 
-def date_restrict_daily(date='2024-01-01'):
-    print('Function date_restrict_daily() called')
-    # Restricting df to desired dates, in app this value comes from the callback
-        
-    date = pd.to_datetime(date).date() #Format: %Y/%m/%d
-
-    # You have to use dt.date for series and .date() for individual strings
-    #df_stacked = dfg.loc[(dfg['Date (MST)'].dt.date == date)]
-    
-    df_hourly = df_hourly_vol.loc[(df_hourly_vol['Date (MST)'].dt.date == date)] 
-                                  
-    
-    return df_hourly
 #%% Cell for running fxns
-data = df_math()
+data = date_restrict()
 
-#%%
-df_math().to_csv('assets/mini_df.csv',index=False)
+#%% For 2024 mini_df
+f_name = 'mini_df.csv'
+date_restrict().to_csv(f'assets/{f_name}',index=False)
+print(f'Exporting of: {f_name} successful')
+
+#%% Total mini_df
+f_name = '232425_mini_df.csv'
+df_math().to_csv(f'assets/{f_name}',index=False)
+print(f'Exporting of: {f_name} successful')
