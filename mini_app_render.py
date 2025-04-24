@@ -8,25 +8,13 @@ Created on Wed May 15 13:38:59 2024
 
 #%% Environment setup
 import pandas as pd
-import numpy as np
-import matplotlib as mpl 
-import matplotlib.pyplot as plt
-import seaborn as sns
-import scipy as sp
-import glob
-import sys
-from matplotlib import cm
-import pathlib
 import os
 import plotly.io as pio
 import plotly.express as px
-from dash import Dash, html, dash_table, dcc, callback, Input, Output
-import dash
+from dash import Dash, html, dcc, callback, Input, Output
 from dash import no_update
 import dash_bootstrap_components as dbc
-import datetime as dt
 from datetime import date
-from datetime import datetime
 import mini_app_data_render
 import gunicorn
 
@@ -36,7 +24,7 @@ pio.templates["custom_template"]["layout"]["title"] = {
     "x": 0.5,  # Centers the title
     "xanchor": "center"
 }
-
+#%%
 color_map = {
     'OTHER':'#93C1A8', #Pale green
     'COAL': '#000000',  # Black
@@ -64,7 +52,29 @@ fuel_dict = {
     'ENERGY STORAGE':'Other'
     }
 
+#%% Dataframe setup
 
+df_hourly_vol = pd.read_csv('assets/mini_df.csv')
+df_hourly_vol['Date (MST)'] = pd.to_datetime(df_hourly_vol['Date (MST)'], format ='%Y-%m-%d %H:%M:%S')
+
+#%%
+start_date='2024-01-01'
+def date_restrict(start_date='2024-01-01',end_date=start_date):
+    print('Function date_restrict() called')
+    # Restricting df to desired dates, in app this value comes from the callback
+        
+    start_date = pd.to_datetime(start_date).date() #Format: %Y-%m-%d
+    end_date = pd.to_datetime(end_date).date()  #Same format
+
+    # You have to use .dt.date for series and .date() for individual strings
+    df_hourly = df_hourly_vol.loc[(df_hourly_vol['Date (MST)'].dt.date >= start_date) 
+                                  & (df_hourly_vol['Date (MST)'].dt.date <= end_date)]
+    
+    #df_stacked = dfg.loc[(dfg['Date (MST)'].dt.date >= start_date) 
+    #                    & (dfg['Date (MST)'].dt.date <= end_date)]
+    
+    return  df_hourly
+#%%
 # Set this template as the default
 pio.templates.default = "custom_template"
 
@@ -178,19 +188,38 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                            dbc.Row([
                                dbc.Col(
                                    dbc.Card(
-                                       dbc.CardBody([html.Img(src=app.get_asset_url("EI and RE month as color.png"),style={'width': 'auto', 'height': 'auto'})], className="p-0"),
+                                       dbc.CardBody([html.Img(src=app.get_asset_url("Emissions Intensity AESO 232425.png"),style={'width': 'auto', 'height': 'auto'})], className="p-0"),
                                        className="shadow-sm m-2"
                                    ),
                                    width=6  # Takes up 8/12 of the row (70% equivalent)
                                ),
                                dbc.Col(
                                    dbc.Card(
-                                       dbc.CardBody([html.P("""In 
+                                       dbc.CardBody([html.P("""Electricity in Alberta remains among the dirtiest of all the provinces in large part due to a lack of
+                                                            hydro power that other provinces such as Ontario, British Columbia, Quebec and Manitoba boast. That being said, AESO is 
+                                                            making strides in reducing the emissions intensity (EI) of its generated power as shown in the figure to the left."""
+                                                            ,html.Br(), html.Br(),
                                                             
-                                                            Additionally, the histogram on top of the scatter shows us that hourly prices are clustered on the low-end.
-                                                            The scatter can be misleading in this way as it's hard to quickly understand what the mean and median power prices may be.
-                                                            Mean: $63, Median: $31, 25th P: $19, 75thP: $48.
-                                                     """)], className='p-0'),
+                                                     """The average EI of power generated on AESO in 2023 was 454 gCO2e/kWh. This was reduced to 406 gCO2e/kWh in
+                                                     2024 representing an 11% reduction in a single year. EI in 2025 has so far been reduced to 390 gCO2e/kWh (14% reduction compared to 2023) 
+                                                     despite the earliest months of the year being the dirtiest."""
+                                                     ,html.Br(), html.Br(),
+                                                     
+                                                     """Also noticeable in the figure is the month-to-month variation in EI. There are 3 major factors for this phenomenon:"""
+                                                     ,html.Br(),html.Br(),
+                                                     html.Strong('1. Grid Asset Mix:'),""" More coal will raise EI and more renewables will lower it. A phase out of coal and dual fuel power plants 
+                                                     was initiated in 2024-01 and completed by 2024-06 """
+                                                     ,html.Br(),html.Br(),
+                                                     html.Strong('2. Wind & Solar Generation: '), """"As critics of renewables like to point out "renewables only work when the sun 
+                                                     shines and the wind blows". Some day, weeks, or months are windier and/or sunnier than others. For example, in 2023-12, 2024-04 and 2025-01
+                                                     considerably more wind power was generated on AESO than in the months before or after them, resulting in a corresponding dip in EI.
+                                                     Likewise, May, June and July (05, 06, 07) are the sunniest months of the year and as such, solar generation peaks in those months."""
+                                                     ,html.Br(),html.Br(),
+                                                     html.Strong('3. Total Load (Electricity Demand):'), """ In moments of moderate load, renewables outcompete fossil fuels on price and are thus preferentially dispatched onto AESO. 
+                                                     However, during peak load events, all generating assets must be dispatched meaning more expensive gas (and previously coal) plants operate at their maximum output and since the
+                                                     energy mix on AESO is dominated by fossil fuels, this increases EI. Peak loads are typically in winter in cold climates and
+                                                     the summer in hot climates due to the energy used in heating and cooling our living spaces. This manifests as an increase 
+                                                     in EI during very hot or very cold spells. Peak load on AESO tends to be in the winter, with hotter periods seeing a small bump as well.""")], className='p-0'),
                                        className="shadow-sm m-2"
                                    ),
                                    width=6  
@@ -296,7 +325,7 @@ def update_multi(start_date, end_date):
      # Create figures
     gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
                           title='Generation by asset type', labels={"y": "Generation Volume MW"})
-    gen_multi.add_hline(y=tester['Total Load'].mean(),
+    gen_multi.add_hline(y=tester['Total Generation'].mean(),
          line_dash="dash",
          label=dict(
              text='Mean Total Generation',
@@ -312,10 +341,22 @@ def update_multi(start_date, end_date):
                    xref="paper", yref="paper", font={'size':14},
                    x=-0.0, y=-0.15, showarrow=False)
 
-    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Fossil Fuel Gen', 'Renewable Gen'], color_discrete_sequence=[
-                           'black', 'green'], labels={"y": "Generation Volume MWh"})
-    clean_ff_fig.update_layout(title='Generation from Renewable vs. Fossil Fuel sources',
-                               yaxis_title='Generation Volume (MW)', yaxis_range=[0, None])
+   clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Generation', 'AIL'], color_discrete_sequence=[
+                           'black', 'green'], labels={"y": "Volume MWh"})
+    clean_ff_fig.add_trace(go.Scatter(
+                            x=tester['Date (MST)'],
+                            y=tester['Total Generation'],
+                            mode='lines',
+                            name='Total Generation',
+                            fill='tonexty',
+                            line=dict(color='black'),
+                            fillcolor='rgba(255, 0, 0, 0.2)'  # Transparent fill
+                        ))
+    clean_ff_fig.update_layout(title='Total Generation and Alberta Internal Load',
+                               yaxis_title='Volume (MW)', yaxis_range=[0, None],
+                               xaxis_title='Date')
+    
+
 
     price_fig = px.line(tester, x='Date (MST)', y='Price')
     price_fig.add_hline(y=tester['Price'].mean(),
