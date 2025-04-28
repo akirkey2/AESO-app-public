@@ -26,32 +26,31 @@ pio.templates["custom_template"]["layout"]["title"] = {
 }
 #%%
 color_map = {
-    'OTHER':'#93C1A8', #Pale green
-    'COAL': '#000000',  # Black
-    'DUAL FUEL':'#936400', #Dark Grey
-    'GAS': '#9E8653',  # Brown
-    'HYDRO': '#1F77B4',  # Blue
-    'WIND': '#2CA02C',  # Green
-    'SOLAR': '#FDB813',  # Yellow
-    'ENERGY STORAGE':'#C24141', #Red
+    'Other': '#93C1A8',  # Pale green
+    'Coal': '#000000',   # Black
+    'Dual Fuel': '#936400',  # Dark Grey
+    'Gas': '#9E8653',    # Brown
+    'Hydro': '#1F77B4',  # Blue
+    'Wind': '#2CA02C',   # Green
+    'Solar': '#FDB813',  # Yellow
+    'Energy Storage': '#C24141',  # Red
 }
 
-fuel_types = ['COAL','DUAL FUEL', 'GAS', 'OTHER',
-              'ENERGY STORAGE','HYDRO', 'SOLAR','WIND']
-
+fuel_types = [
+    'Coal', 'Dual Fuel', 'Gas', 'Other',
+    'Energy Storage', 'Hydro', 'Solar', 'Wind'
+]
 
 fuel_dict = {
-    'COAL':'Fossil Fuel',
-    'DUAL FUEL':'Fossil Fuel',
-    'COAL':'Fossil Fuel',
-    'GAS':'Fossil Fuel',
-    'HYDRO':'Renewable',
-    'SOLAR':'Renewable',
-    'WIND':'Renewable',
-    'OTHER':'Other',
-    'ENERGY STORAGE':'Other'
-    }
-
+    'Coal': 'Fossil Fuel',
+    'Dual Fuel': 'Fossil Fuel',
+    'Gas': 'Fossil Fuel',
+    'Hydro': 'Renewable',
+    'Solar': 'Renewable',
+    'Wind': 'Renewable',
+    'Other': 'Other',
+    'Energy Storage': 'Other'
+}
 #%% Dataframe setup
 
 df_hourly_vol = pd.read_csv('assets/mini_df.csv')
