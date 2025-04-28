@@ -141,19 +141,21 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                                            dbc.Row([
                                                dbc.Col(
                                                    dbc.Card(
-                                                       dbc.CardBody([dcc.Graph(id='clean_fossil_gen')], className="p-0"),
+                                                       dbc.CardBody([dcc.Graph(id='total_gen_load')], className="p-0"),
                                                        className="shadow-sm m-2"
                                                    ),
                                                    width=6
                                                ),
+
                                                dbc.Col(
                                                    dbc.Card(
-                                                       dbc.CardBody([dcc.Graph(id='gen_price')], className='p-0'),
+                                                       dbc.CardBody([dcc.Graph(id='storage_volume')], className='p-0'),
                                                        className="shadow-sm m-2"
                                                    ),
                                                    width=6
                                                )
                                            ])
+                                           
                                        ,fluid=True),
 
 
@@ -161,7 +163,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
                                            dbc.Row([
                                                dbc.Col(
                                                    dbc.Card(
-                                                       dbc.CardBody([dcc.Graph(id='storage_volume')], className="p-0"),
+                                                       dbc.CardBody([dcc.Graph(id='gen_price')], className="p-0"),
                                                        className="shadow-sm m-2"
                                                    ),
                                                    width=6
@@ -295,7 +297,7 @@ app.layout = html.Div(style={'backgroundColor':'#818894'},
 @callback(
     Output('asset_gen_multi', 'figure'),
     Output('gen_pie_multi', 'figure'),
-    Output('clean_fossil_gen', 'figure'),
+    Output('total_gen_load', 'figure'),
     Output('gen_price', 'figure'),
     Output('storage_volume', 'figure'),
     Output('EI_graph', 'figure'),
@@ -317,16 +319,16 @@ def update_multi(start_date, end_date):
     print(f"Date Range Selected: {start_date} --> {end_date}")
 
     # Filter data based on selected date range
-    tester = date_restrict(start_date, end_date)
-    df_pie = tester[fuel_types].sum().reset_index(name='Sum')
+    df = date_restrict(start_date, end_date)
+    df_pie = df[fuel_types].sum().reset_index(name='Sum')
     df_pie['Source'] = df_pie['index'].map(fuel_dict)
     df_pie['percent'] = (df_pie['Sum'] / df_pie['Sum'].sum())*100
     ffg = df_pie.loc[df_pie['Source']=='Fossil Fuel']['percent'].sum()
     reg = df_pie.loc[df_pie['Source']=='Renewable']['percent'].sum()
      # Create figures
-    gen_multi = px.area(tester, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
-                          title='Generation by asset type', labels={"y": "Generation Volume MW"})
-    gen_multi.add_hline(y=tester['Total Generation'].mean(),
+    gen_multi = px.area(df, x='Date (MST)', y=list(color_map.keys()), color_discrete_map=color_map, 
+                          title='Generation by Asset Type', labels={"y": "Generation Volume MW"})
+    gen_multi.add_hline(y=df['Total Generation'].mean(),
          line_dash="dash",
          label=dict(
              text='Mean Total Generation',
@@ -334,33 +336,74 @@ def update_multi(start_date, end_date):
              font=dict(size=14, color="black"),
              yanchor="bottom",
          ))
-    gen_multi.update_layout(yaxis_title='Generation (MW)', xaxis_title='Date')
+    gen_multi.update_layout(yaxis_title='Generation (MW)', xaxis_title='Date & Time',
+                            legend_title_text='Fuel Type')
     gen_pie_multi = px.pie(df_pie,values='percent',names='index',color='index',
-                            color_discrete_map=color_map, title='% generation by asset type')
+                            color_discrete_map=color_map, title='Total Generation by Asset Type')
     gen_pie_multi.update_traces(texttemplate='%{value:.1f}%')
     gen_pie_multi.add_annotation(text=f"Fossil Fuels:{ffg:.1f}%, Renewables:{reg:.1f}%",
                    xref="paper", yref="paper", font={'size':14},
-                   x=-0.0, y=-0.15, showarrow=False)
+                   x=0.15, y=-0.1, showarrow=False)
+    gen_pie_multi.update_layout(margin=dict(t=60, b=60, l=95, r=60))
 
-    clean_ff_fig = px.line(tester, x='Date (MST)', y=['Total Generation', 'Total Load'], 
-                          color_discrete_sequence=['black', 'red'], labels={"y": "Volume MWh"})
-    # clean_ff_fig.add_trace(go.Scatter(
-    #                         x=tester['Date (MST)'],
-    #                         y=tester['Total Generation'],
+    gen_load_fig = px.line(df, x='Date (MST)', y=['Total Generation', 'Total Load'], 
+                          color_discrete_sequence=['black', '#636EFA'], labels={"y": "Volume MWh"})
+    # gen_load_fig.add_trace(go.Scatter(
+    #                         x=df['Date (MST)'],
+    #                         y=df['Total Generation'],
     #                         mode='lines',
     #                         name='Total Generation',
     #                         fill='tonexty',
     #                         line=dict(color='black'),
     #                         fillcolor='rgba(255, 0, 0, 0.2)'  # Transparent fill
     #                   ))
-    clean_ff_fig.update_layout(title='Total Generation and AESO Internal Load',
-                               yaxis_title='Volume (MW)', yaxis_range=[0, None],
-                               xaxis_title='Date')
     
+    mask = df['Total Load'] > df['Total Generation']
 
+    # Find continuous segments where condition is true
+    segments = []
+    current = []
 
-    price_fig = px.line(tester, x='Date (MST)', y='Price')
-    price_fig.add_hline(y=tester['Price'].mean(),
+    for i in range(len(df)):
+        if mask.iloc[i]:
+            current.append(i)
+        else:
+            if current:
+                segments.append(current)
+                current = []
+    if current:
+        segments.append(current)
+
+    # Create figure and add base traces
+
+    # Add shaded regions
+    for seg in segments:
+        x = list(df['Date (MST)'].iloc[seg]) + list(df['Date (MST)'].iloc[seg][::-1])
+        y = list(df['Total Load'].iloc[seg]) + list(df['Total Generation'].iloc[seg][::-1])
+        
+        gen_load_fig.add_trace(go.Scatter(
+            x=x,
+            y=y,
+            fill='toself',
+            mode='lines',
+            line=dict(width=0),
+            fillcolor='rgba(255,0,0,0.3)',
+            hoverinfo='skip',
+            name='Overload Area',
+            showlegend=False
+        ))
+    gen_load_fig.update_layout(title='Total Generation and AESO Internal Load',
+                           yaxis_title='Volume (MW)', yaxis_range=[0, None],
+                           xaxis_title='Date & Time', legend_title_text='',
+                           legend=dict(
+                                            yanchor="top",
+                                            y=0.32,
+                                            xanchor="left",
+                                            x=0.85
+                                        ))
+
+    price_fig = px.line(df, x='Date (MST)', y='Price')
+    price_fig.add_hline(y=df['Price'].mean(),
         line_dash="dash",
         label=dict(
             text='Mean Price',
@@ -370,16 +413,16 @@ def update_multi(start_date, end_date):
         ))
     price_fig.update_layout(title='Hourly Average Price',
                             yaxis_title='Average Hourly Price ($/MWh)',
-                            xaxis_title='Time of Day')
+                            xaxis_title='Date & Time')
 
-    storage_fig = px.area(tester, x='Date (MST)', y='ENERGY STORAGE')
+    storage_fig = px.area(df, x='Date (MST)', y='Energy Storage')
     storage_fig.update_layout(title='Hourly Energy Storage Charge/Discharge',
                               yaxis_title='Energy Storage Volume (MW)',
-                              xaxis_title='Time of Day')
+                              xaxis_title='Date & Time')
 
-    EI_fig = px.scatter(tester, x='Date (MST)', y='EI',
-                        color='RE_percent', color_continuous_scale=['#D62728', 'yellow', 'green'])
-    EI_fig.add_hline(y=tester['EI'].mean(),
+    EI_fig = px.scatter(df, x='Date (MST)', y='EI',
+                        color='RE_percent', color_continuous_scale=['#ce3d3d', '#f1c232', '#3aa00d'])
+    EI_fig.add_hline(y=df['EI'].mean(),
         line_dash="dash",
         label=dict(
             text='Mean EI',
@@ -389,14 +432,12 @@ def update_multi(start_date, end_date):
         ))
     EI_fig.update_layout(title='Emission Intensity of Generated Electricity',
                         yaxis_title='Emission Intensity (gCO2e/kWh)',
-                        xaxis_title='Time of Day',
+                        xaxis_title='Date & Time',
                         coloraxis_colorbar_title='% Renewables',
                         coloraxis_colorbar_title_font_size=12)
 
 
-    return gen_multi, gen_pie_multi, clean_ff_fig, price_fig, storage_fig, EI_fig, start_date
-
-
+    return gen_multi, gen_pie_multi, gen_load_fig, price_fig, storage_fig, EI_fig, start_date
 
 #%%
 # The following code is for running locally in a browser

@@ -163,6 +163,24 @@ def df_math():
     #Time check
     diff = datetime.now() - start_time
     print(f'After incorporating price data: {diff}')
+    df_hourly_vol = df_hourly_vol.rename(columns={
+    'OTHER': 'Other',
+    'OTHER_ghg': 'Other_ghg',
+    'WIND': 'Wind',
+    'WIND_ghg': 'Wind_ghg',
+    'GAS': 'Gas',
+    'GAS_ghg': 'Gas_ghg',
+    'HYDRO': 'Hydro',
+    'HYDRO_ghg': 'Hydro_ghg',
+    'SOLAR': 'Solar',
+    'SOLAR_ghg': 'Solar_ghg',
+    'ENERGY STORAGE': 'Energy Storage',
+    'ENERGY STORAGE_ghg': 'Energy Storage_ghg',
+    'COAL': 'Coal',
+    'COAL_ghg': 'Coal_ghg',
+    'DUAL FUEL': 'Dual Fuel',
+    'DUAL FUEL_ghg': 'Dual Fuel_ghg'
+    })
     
     return df_hourly_vol
 
@@ -197,6 +215,6 @@ date_restrict().to_csv(f'assets/{f_name}',index=False)
 print(f'Exporting of: {f_name} successful')
 
 #%% Total mini_df
-f_name = '232425_mini_df.csv'
-df_math().to_csv(f'assets/{f_name}',index=False)
-print(f'Exporting of: {f_name} successful')
+# f_name = '232425_mini_df.csv'
+# df_math().to_csv(f'assets/{f_name}',index=False)
+# print(f'Exporting of: {f_name} successful')
